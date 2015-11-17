@@ -1,4 +1,4 @@
-package unit2_exercise15_trees;
+package unit3_exercise15_trees;
 
 public class BalancedBinaryTree<E extends Comparable<E>> extends BinaryTree<E> {
 

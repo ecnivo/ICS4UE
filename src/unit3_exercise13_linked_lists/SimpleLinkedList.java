@@ -1,26 +1,33 @@
-package unit2_exercise13_linked_lists;
+package unit3_exercise13_linked_lists;
 
+public class SimpleLinkedList<E> {
 
-public class DoubleLinkedList<E> {
-
-	private DoubleNode<E> head;
-	private DoubleNode<E> tail;
+	private Node<E> head;
 
 	/**
 	 * Creates a new, blank, linked list.
 	 */
-	public DoubleLinkedList() {
+	public SimpleLinkedList() {
 		head = null;
-		tail = null;
 	}
 
 	/**
 	 * Gets the last node in the list
 	 * 
-	 * @return the last DoubleNode<E>
+	 * @return the last Node<E>
 	 */
-	private DoubleNode<E> getLastNode() {
-		return tail;
+	private Node<E> getLastNode() {
+		// Check if the list is empty
+		if (head == null) {
+			return null;
+		}
+
+		// Goes through the list until the end
+		Node<E> currNode = head;
+		while (currNode.getNextNode() != null) {
+			currNode = currNode.getNextNode();
+		}
+		return currNode;
 	}
 
 	/**
@@ -30,11 +37,14 @@ public class DoubleLinkedList<E> {
 	 *            the element to add
 	 */
 	public void add(E e) {
-		if (tail == null) {
-			tail = new DoubleNode<E>(e, null, null);
-		} else {
-			tail.setNextNode(new DoubleNode<E>(e, null, tail));
-			tail = tail.getNextNode();
+		// Puts it at the front if list is empty to begin with
+		if (head == null) {
+			head = new Node<E>(e, null);
+
+		}
+		// Puts it elsewhere if not empty
+		else {
+			getLastNode().setNextNode(new Node<E>(e, null));
 		}
 	}
 
@@ -51,7 +61,7 @@ public class DoubleLinkedList<E> {
 			return null;
 		} else {
 			// Goes through array until it finds the element
-			DoubleNode<E> currNode = head;
+			Node<E> currNode = head;
 			for (int i = 0; i < index; i++) {
 				currNode = currNode.getNextNode();
 			}
@@ -60,19 +70,19 @@ public class DoubleLinkedList<E> {
 	}
 
 	/**
-	 * Gets a particular DoubleNode<E> in the array
+	 * Gets a particular Node<E> in the array
 	 * 
 	 * @param index
 	 *            the target node
-	 * @return the DoubleNode<E>
+	 * @return the Node<E>
 	 */
-	private DoubleNode<E> getNode(int index) {
+	public Node<E> getNode(int index) {
 		// Parameter sanitization
 		if (head == null || index < 0 || index > size() - 1) {
 			return null;
 		} else {
 			// Loops through to get the desired node
-			DoubleNode<E> currNode = head;
+			Node<E> currNode = head;
 			for (int i = 0; i < index; i++) {
 				currNode = currNode.getNextNode();
 			}
@@ -90,7 +100,7 @@ public class DoubleLinkedList<E> {
 	 */
 	public int indexOf(E e) {
 		int index = 0;
-		DoubleNode<E> currNode = head;
+		Node<E> currNode = head;
 		// Finds the element and its index
 		while (!currNode.getData().equals(e)) {
 			if (currNode.getNextNode() != null) {
@@ -120,20 +130,11 @@ public class DoubleLinkedList<E> {
 			E tempData = get(index);
 
 			if (index == 0) {
-				head.getNextNode().setPrevNode(null);
-				head = head.getNextNode();
-			} else if (index == size() - 1) {
-				tail.getPrevNode().setNextNode(null);
-				tail = tail.getPrevNode();
+				head = getNode(1);
+			} else if (getNode(index + 1) != null) {
+				getNode(index - 1).setNextNode(getNode(index + 1));
 			} else {
-				DoubleNode<E> prev = getNode(index - 1);
-				DoubleNode<E> curr = getNode(index);
-				DoubleNode<E> next = getNode(index + 1);
-
-				prev.setNextNode(next);
-				next.setPrevNode(prev);
-				curr.setNextNode(null);
-				curr.setPrevNode(null);
+				getNode(index - 1).setNextNode(null);
 			}
 
 			return tempData;
@@ -160,14 +161,13 @@ public class DoubleLinkedList<E> {
 	 */
 	public void clear() {
 		head = null;
-		tail = null;
 	}
 
 	public int size() {
 		if (head == null) {
 			return 0;
 		} else {
-			DoubleNode<E> currNode = head;
+			Node<E> currNode = head;
 			int noOfNodes = 1;
 			while (currNode.getNextNode() != null) {
 				currNode = currNode.getNextNode();
@@ -178,27 +178,56 @@ public class DoubleLinkedList<E> {
 	}
 
 	public String toString() {
-		if (head == null)
-			return "[]";
-		DoubleNode<E> currNode = head;
 		String output = "[";
-		while (currNode != null) {
-			output += currNode.getData() + " ";
-			currNode = currNode.getNextNode();
+		for (int i = 0; i < size() - 1; i++) {
+			output += get(i).toString() + ", ";
 		}
-		output += output.trim() + "]";
+		output += getLastNode().getData() + "]";
 		return output;
 	}
 
-	static class DoubleNode<E> {
+	public void swapWithNext(int index) {
+		int size = size();
+
+		if (index > 0 && index < size - 2) {
+			Node<E> prevNode = getNode(index - 1);
+			Node<E> currNode = getNode(index);
+			Node<E> nextNode = getNode(index + 1);
+			Node<E> twoNodesAfter = getNode(index + 2);
+
+			// Sets previous to next one
+			prevNode.setNextNode(nextNode);
+			// Sets next to current
+			nextNode.setNextNode(currNode);
+			// Sets current to two after
+			currNode.setNextNode(twoNodesAfter);
+		} else if (index == 0) {
+			Node<E> oldHead = getNode(0);
+
+			head = getNode(1);
+			oldHead.setNextNode(head.getNextNode());
+			head.setNextNode(oldHead);
+		} else if (index == size - 2) {
+			Node<E> prevNode = getNode(index - 1);
+			Node<E> currNode = getNode(index);
+			Node<E> tail = getNode(index + 1);
+
+			prevNode.setNextNode(tail);
+			currNode.setNextNode(null);
+			tail.setNextNode(currNode);
+		} else {
+			return;
+		}
+	}
+
+	static class Node<E> {
 		private E data;
-		private DoubleNode<E> nextNode;
-		private DoubleNode<E> prevNode;
+		private Node<E> nextNode;
 
 		/**
 		 * @param e
 		 */
-		private DoubleNode(E e) {
+		private Node(E e) {
 			this.data = e;
 			nextNode = null;
 		}
@@ -207,7 +236,7 @@ public class DoubleLinkedList<E> {
 		 * @param e
 		 * @param nextNode
 		 */
-		private DoubleNode(E e, DoubleNode<E> nextNode, DoubleNode<E> prevNode) {
+		private Node(E e, Node<E> nextNode) {
 			this.data = e;
 			this.nextNode = nextNode;
 		}
@@ -215,42 +244,28 @@ public class DoubleLinkedList<E> {
 		/**
 		 * @param nextNode
 		 */
-		private void setNextNode(DoubleNode<E> nextNode) {
+		private void setNextNode(Node<E> nextNode) {
 			this.nextNode = nextNode;
 		}
 
 		/**
-		 * @param nextNode
-		 */
-		private void setPrevNode(DoubleNode<E> prevNode) {
-			this.prevNode = prevNode;
-		}
-
-		/**
 		 * @return
 		 */
-		private DoubleNode<E> getPrevNode() {
-			return prevNode;
-		}
-
-		/**
-		 * @return
-		 */
-		private DoubleNode<E> getNextNode() {
+		public Node<E> getNextNode() {
 			return nextNode;
 		}
 
 		/**
 		 * @param data
 		 */
-		private void setData(E data) {
+		public void setData(E data) {
 			this.data = data;
 		}
 
 		/**
 		 * @return
 		 */
-		private E getData() {
+		public E getData() {
 			return data;
 		}
 	}

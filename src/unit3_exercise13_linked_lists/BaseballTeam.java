@@ -1,4 +1,4 @@
-package unit2_exercise13_linked_lists;
+package unit3_exercise13_linked_lists;
 
 public class BaseballTeam implements Comparable<BaseballTeam> {
 

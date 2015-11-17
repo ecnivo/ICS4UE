@@ -1,4 +1,4 @@
-package unit2_exercise14_queues_and_stacks;
+package unit3_exercise14_queues_and_stacks;
 
 import java.io.BufferedReader;
 import java.io.IOException;
