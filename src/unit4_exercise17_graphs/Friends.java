@@ -1,14 +1,15 @@
 package unit4_exercise17_graphs;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class Friends {
 
-	private static int[][] people;
+	private static boolean[][] people;
 
-	public static void main(String[] args) {
-		people = new int[49][49];
+	public static void main(String[] args) throws IOException {
+		people = new boolean[49][49];
 
 		connect(2, 6);
 		connect(1, 6);
@@ -34,58 +35,113 @@ public class Friends {
 		connect(17, 18);
 
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		while (br.readLine())
+		char command;
+		int from = -1;
+		int to = -1;
+		while (true) {
+			String input = br.readLine();
+			command = input.charAt(0);
+
+			if (command != 'q') {
+				from = Integer.parseInt(br.readLine());
+				if (command != 'n' && command != 'f')
+					to = Integer.parseInt(br.readLine());
+			}
+
+			switch (command) {
+			case 'i':
+				connect(from, to);
+				break;
+			case 'd':
+				destroy(from, to);
+				break;
+			case 'n':
+				System.out.println(noOfFriends(from));
+				break;
+			case 'f':
+				System.out.println(friendsOfFriends(from));
+				break;
+			case 's':
+				System.out.println(degreeOfSep(from, to));
+				break;
+			case 'q':
+				return;
+			}
+		}
 	}
 
 	public static void connect(int origin, int dest) {
-		people[origin][dest] = 1;
-		people[dest][origin] = 1;
+		people[origin][dest] = true;
+		people[dest][origin] = true;
 	}
 
 	public static void destroy(int origin, int dest) {
-		people[origin][dest] = 0;
-		people[dest][origin] = 0;
+		people[origin][dest] = false;
+		people[dest][origin] = false;
 	}
 
 	public static int noOfFriends(int person) {
 		int friends = 0;
 		for (int friend = 0; friend < people[person].length; friend++) {
-			if (people[person][friend] == 1)
+			if (people[person][friend])
 				friends++;
 		}
 		return friends;
 	}
 
 	public static int friendsOfFriends(int person) {
-		int fOF = 0;
+		int[] fof = new int[50];
+		int fofIdx = 0;
 		for (int friend = 0; friend < people[person].length; friend++) {
-			if (people[person][friend] == 1) {
-				fOF += noOfFriends(friend);
+			if (people[person][friend]) {
+				boolean[] possibleFOFs = people[friend];
+				for (int pFOF = 0; pFOF < possibleFOFs.length; pFOF++) {
+					if (people[friend][pFOF] && pFOF != person
+							&& pFOF != friend && !contains(fof, pFOF)
+							&& !people[person][pFOF]) {
+						fof[fofIdx] = pFOF;
+						fofIdx++;
+					}
+				}
 			}
 		}
-		return fOF;
+
+		int fofs = 0;
+		for (int fOF : fof) {
+			if (fOF != 0)
+				fofs++;
+		}
+		return fofs;
 	}
 
 	public static int degreeOfSep(int origin, int dest) {
-		int[] visited = shortestPath(new int[people.length], origin, dest);
-		for (int dist = 0; dist < visited.length; dist++) {
-			if (visited[dist] == 0)
-				return dist - 1;
-		}
-		return visited.length;
+		int visited[] = new int[50];
+		visited[origin] = 1;
+		return distance(origin, dest, visited);
 	}
 
-	public static int[] shortestPath(int[] visited, int origin, int dest) {
-		if (contains(visited, dest))
-			return visited;
+	public static int distance(int person, int dest, int[] visited) {
+		if (person == dest)
+			return 1;
 
-		int[] friends = people[origin];
+		boolean[] friends = people[person];
+		int[] possibleDistances = new int[2500];
+		int possDistCounter = 0;
 		for (int friend = 0; friend < friends.length; friend++) {
-			if (people[origin][friend] == 1 && !contains(visited, friend)) {
-				visited = shortestPath(visited, friend, dest);
+			if (people[person][friend] && !contains(visited, friend)) {
+				visited[friend] = 1;
+				possibleDistances[possDistCounter] = distance(friend, dest,
+						visited);
+				possDistCounter++;
 			}
 		}
-		return visited;
+
+		int minDist = Integer.MAX_VALUE;
+		for (int distance : possibleDistances) {
+			if (distance < minDist)
+				minDist = distance;
+		}
+		return minDist;
 	}
 
 	public static boolean contains(int[] array, int target) {
