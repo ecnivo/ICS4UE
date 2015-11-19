@@ -1,14 +1,14 @@
 package unit4_exercise16_sorts_and_complexity;
 
-import java.util.Arrays;
-
 public class Sorts {
 
+	static int[] numbers;
+
 	public static void main(String[] args) {
-		// int[] numbers = generateRandomNumberArray(10);
-		int[] numbers = { 6, 2, 5, 0, 4, 3, 1 };
+		 numbers = generateRandomNumberArray(1000);
+//		numbers = new int[] { 6, 2, 5, 0, 4, 3, 1 };
 		long start = System.nanoTime();
-		numbers = insertSort(numbers);
+		mergeSort();
 		long end = System.nanoTime();
 
 		printArray(numbers);
@@ -29,53 +29,42 @@ public class Sorts {
 		return returnArray;
 	}
 
-	public static int[] mergeSort(int[] array) {
-		if (array.length <= 1)
-			return array;
-
-		int middle = array.length / 2;
-		int[] front = new int[middle];
-		int[] back = new int[array.length - middle];
-		for (int i = 0; i < middle; i++) {
-			front[i] = array[i];
-		}
-		for (int i = middle; i < array.length; i++) {
-			back[i - middle] = array[i];
-		}
-
-		return merge(front, back);
+	public static void mergeSort() {
+		mergeSort(0, numbers.length - 1);
 	}
 
-	private static int[] merge(int[] front, int[] back) {
-		int[] merged = new int[front.length + back.length];
+	public static void mergeSort(int front, int back) {
+		if (front >= back)
+			return;
 
-		int i = 0;
-		int frontI = 0;
-		int backI = 0;
+		int middle = front + (back - front) / 2;
 
-		while (frontI < front.length && backI < back.length) {
-			if (front[frontI] > back[backI]) {
-				merged[i] = front[frontI];
+		mergeSort(front, middle);
+		mergeSort(middle + 1, back);
+
+		int[] copy = new int[numbers.length];
+		for (int i = front; i <= back; i++) {
+			copy[i] = numbers[i];
+		}
+
+		int frontI = front;
+		int backI = middle + 1;
+		int insI = front;
+		while (frontI <= middle && backI <= back) {
+			if (copy[frontI] <= copy[backI]) {
+				numbers[insI] = copy[frontI];
 				frontI++;
 			} else {
-				merged[i] = back[backI];
+				numbers[insI] = copy[backI];
 				backI++;
 			}
-			i++;
+			insI++;
 		}
-
-		while (frontI < front.length) {
-			merged[i] = front[frontI];
-			i++;
+		while (frontI <= middle) {
+			numbers[insI] = copy[frontI];
+			insI++;
 			frontI++;
 		}
-		while (backI < back.length) {
-			merged[i] = back[backI];
-			i++;
-			backI++;
-		}
-
-		return merged;
 	}
 
 	public static int[] insertSort(int[] array) {
@@ -107,10 +96,8 @@ public class Sorts {
 				return new int[] { array[1], array[0] };
 			else
 				return array;
-		} else if (usableLength == 1) {
+		} else if (usableLength <= 1) {
 			return array;
-		} else if (usableLength == 0) {
-			return new int[0];
 		}
 
 		int pivot = array[usableLength / 2];
