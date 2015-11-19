@@ -62,7 +62,11 @@ public class Friends {
 				System.out.println(friendsOfFriends(from));
 				break;
 			case 's':
-				System.out.println(degreeOfSep(from, to));
+				byte dist = degreeOfSep(from, to);
+				if (dist != -1)
+					System.out.println(dist);
+				else
+					System.out.println("Not connected.");
 				break;
 			case 'q':
 				return;
@@ -70,14 +74,14 @@ public class Friends {
 		}
 	}
 
-	public static void connect(int origin, int dest) {
-		people[origin][dest] = true;
-		people[dest][origin] = true;
+	public static void connect(int firstPerson, int second) {
+		people[firstPerson][second] = true;
+		people[second][firstPerson] = true;
 	}
 
-	public static void destroy(int origin, int dest) {
-		people[origin][dest] = false;
-		people[dest][origin] = false;
+	public static void destroy(int first, int second) {
+		people[first][second] = false;
+		people[second][first] = false;
 	}
 
 	public static int noOfFriends(int person) {
@@ -114,34 +118,37 @@ public class Friends {
 		return fofs;
 	}
 
-	public static int degreeOfSep(int origin, int dest) {
-		int visited[] = new int[50];
-		visited[origin] = 1;
-		return distance(origin, dest, visited);
-	}
+	public static byte degreeOfSep(int origin, int dest) {
+		byte[] distance = new byte[50];
+		for (byte i = 0; i < distance.length; i++) {
+			distance[i] = -1;
+		}
+		distance[origin] = 0;
 
-	public static int distance(int person, int dest, int[] visited) {
-		if (person == dest)
-			return 1;
+		while (distance[dest] == -1) {
+			// tries to find the closest node to the center
+			byte closestFriendDist = Byte.MAX_VALUE;
+			byte closestFriend = -1;
+			for (byte person = 0; person < distance.length; person++) {
+				if (distance[person] != -1) { // visited
 
-		boolean[] friends = people[person];
-		int[] possibleDistances = new int[2500];
-		int possDistCounter = 0;
-		for (int friend = 0; friend < friends.length; friend++) {
-			if (people[person][friend] && !contains(visited, friend)) {
-				visited[friend] = 1;
-				possibleDistances[possDistCounter] = distance(friend, dest,
-						visited);
-				possDistCounter++;
+					for (byte friend = 0; friend < people[person].length; friend++) {
+						if (people[person][friend] && distance[friend] == -1) {
+							byte dist = (byte) (distance[person] + 1);
+							if (dist < closestFriendDist) {
+								closestFriendDist = dist;
+								closestFriend = friend;
+							}
+						}
+					}
+
+				}
 			}
+			if (closestFriend == -1)
+				return -1;
+			distance[closestFriend] = closestFriendDist;
 		}
-
-		int minDist = Integer.MAX_VALUE;
-		for (int distance : possibleDistances) {
-			if (distance < minDist)
-				minDist = distance;
-		}
-		return minDist;
+		return distance[dest];
 	}
 
 	public static boolean contains(int[] array, int target) {
