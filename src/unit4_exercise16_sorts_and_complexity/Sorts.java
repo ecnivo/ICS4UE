@@ -8,7 +8,7 @@ public class Sorts {
 		// int[] numbers = generateRandomNumberArray(10);
 		int[] numbers = { 6, 2, 5, 0, 4, 3, 1 };
 		long start = System.nanoTime();
-		numbers = mergeSort(numbers);
+		numbers = insertSort(numbers);
 		long end = System.nanoTime();
 
 		printArray(numbers);
@@ -76,6 +76,33 @@ public class Sorts {
 		}
 
 		return merged;
+	}
+
+	public static int[] insertSort(int[] array) {
+		for (int curr = 1; curr < array.length; curr++) {
+			int compare = curr;
+			while (array[compare] >= array[curr] && compare >= 1) {
+				compare--;
+				System.out.println("comparing " + array[curr] + " with " + array[compare]);
+			}
+			int moving = array[curr];
+
+			System.out.println("inserting " + array[curr] + " at " + compare);
+			printArray(array);
+			for (int shift = curr; shift > compare; shift--) {
+				array[shift] = array[shift - 1];
+			}
+			array[compare] = moving;
+		}
+		return array;
+	}
+
+	public static int[] insertAt(int[] array, int index, int value) {
+		for (int i = index + 1; i <= array.length - 1; i++) {
+			array[i] = array[i - 1];
+		}
+		array[index] = value;
+		return array;
 	}
 
 	public static void printArray(int[] array) {
