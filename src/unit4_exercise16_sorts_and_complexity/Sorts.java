@@ -5,14 +5,13 @@ import java.util.Arrays;
 public class Sorts {
 
 	public static void main(String[] args) {
-		int[] numbers = generateRandomNumberArray(10);
+		// int[] numbers = generateRandomNumberArray(10);
+		int[] numbers = { 6, 2, 5, 0, 4, 3, 1 };
 		long start = System.nanoTime();
-		numbers = mergeSort(numbers, 0, numbers.length);
+		numbers = mergeSort(numbers);
 		long end = System.nanoTime();
 
-		for (int i : numbers) {
-			System.out.print(i + " ");
-		}
+		printArray(numbers);
 		System.out.println("The operation took " + (end - start) + " nanos");
 	}
 
@@ -30,95 +29,60 @@ public class Sorts {
 		return returnArray;
 	}
 
-	public static int[] mergeSort(int[] array, int start, int end) {
-		if (end - start <= 1)
+	public static int[] mergeSort(int[] array) {
+		if (array.length <= 1)
 			return array;
 
-		// Finds middle and splits
-		int middle = (start + end) / 2;
-		mergeSort(array, start, middle);
-		mergeSort(array, middle, end);
-
-		// Prepares for merging
-		int[] returnArray = new int[array.length];
-		int frontCounter = 0;
-		int backCounter = middle;
-		int i = 0;
-		// Merges
-		while (i < returnArray.length && frontCounter < middle
-				&& backCounter < end) {
-			int nextVal = Integer.MAX_VALUE;
-			if (array[frontCounter] < array[backCounter]) {
-				nextVal = array[frontCounter];
-				frontCounter++;
-			} else {
-				nextVal = array[backCounter];
-				backCounter++;
-			}
-			returnArray[i] = nextVal;
-			i++;
+		int middle = array.length / 2;
+		int[] front = new int[middle];
+		int[] back = new int[array.length - middle];
+		for (int i = 0; i < middle; i++) {
+			front[i] = array[i];
+		}
+		for (int i = middle; i < array.length; i++) {
+			back[i - middle] = array[i];
 		}
 
-		// Merges the rest of the array if not covered
-		while (frontCounter < middle) {
-			returnArray[i] = array[frontCounter];
-			i++;
-			frontCounter++;
-		}
-		while (backCounter < end) {
-			returnArray[i] = array[backCounter];
-			i++;
-			backCounter++;
-		}
-
-		return returnArray;
+		return merge(front, back);
 	}
 
-	public static int[] mergeSort(int[] array) {
-		// Splits array
-		if (array.length > 1) {
-			int middle = (int) (array.length / 2);
-			int[] front = mergeSort(Arrays.copyOfRange(array, 0, middle));
-			int[] back = mergeSort(Arrays.copyOfRange(array, middle,
-					array.length - 1));
+	private static int[] merge(int[] front, int[] back) {
+		int[] merged = new int[front.length + back.length];
 
-			// Finds the larger number in each of the arrays to put in the
-			// return
-			int[] returnArray = new int[array.length];
-			int frontCounter = 0;
-			int backCounter = 0;
-			int i = 0;
-			while (i < returnArray.length && frontCounter < front.length
-					&& backCounter < back.length) {
-				int nextVal;
-				if (front[frontCounter] < back[backCounter]) {
-					nextVal = front[frontCounter];
-					frontCounter++;
-				} else {
-					nextVal = back[backCounter];
-					backCounter++;
-				}
-				returnArray[i] = nextVal;
-				i++;
-			}
+		int i = 0;
+		int frontI = 0;
+		int backI = 0;
 
-			// Copies the remaining arrays over
-			while (frontCounter < front.length - 1) {
-				returnArray[i] = front[frontCounter];
-				i++;
-				frontCounter++;
+		while (frontI < front.length && backI < back.length) {
+			if (front[frontI] > back[backI]) {
+				merged[i] = front[frontI];
+				frontI++;
+			} else {
+				merged[i] = back[backI];
+				backI++;
 			}
-			while (backCounter < back.length - 1) {
-				returnArray[i] = back[backCounter];
-				i++;
-				backCounter++;
-			}
-
-			return returnArray;
+			i++;
 		}
-		// Returns the single number if not applicable
-		return array;
 
+		while (frontI < front.length) {
+			merged[i] = front[frontI];
+			i++;
+			frontI++;
+		}
+		while (backI < back.length) {
+			merged[i] = back[backI];
+			i++;
+			backI++;
+		}
+
+		return merged;
+	}
+
+	public static void printArray(int[] array) {
+		for (int i : array) {
+			System.out.print(i + " ");
+		}
+		System.out.println("");
 	}
 
 }
