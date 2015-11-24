@@ -3,6 +3,8 @@ package unit4_exercise18_multithreading;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -14,10 +16,13 @@ import javax.swing.JPanel;
 
 public class RectangleCollision extends JFrame {
 
-	private final static int SQUARE_SIZE = 50;
+	private final static int SQUARE_SIZE = 15;
+	private static double moveAmount;
 
 	protected double targetX;
 	protected double targetY;
+
+	private boolean[] pressed = new boolean[7];
 
 	protected ContentPanel contentPanel = new ContentPanel();
 
@@ -29,6 +34,7 @@ public class RectangleCollision extends JFrame {
 		super("Rectangle Collision");
 		this.setPreferredSize(new Dimension(900, 500));
 		this.setLocation(100, 100);
+		this.setFocusable(true);
 		this.add(contentPanel);
 		this.setVisible(true);
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,29 +47,74 @@ public class RectangleCollision extends JFrame {
 
 			@Override
 			public void keyReleased(KeyEvent e) {
-				// nothing
+				if (e.getKeyCode() == KeyEvent.VK_DOWN)
+					pressed[2] = false;
+				else if (e.getKeyCode() == KeyEvent.VK_UP)
+					pressed[3] = false;
+				else if (e.getKeyCode() == KeyEvent.VK_RIGHT)
+					pressed[4] = false;
+				else if (e.getKeyCode() == KeyEvent.VK_LEFT)
+					pressed[5] = false;
+				else if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+					pressed[6] = false;
+				}
+
+				checkKeys();
 			}
 
 			@Override
 			public void keyPressed(KeyEvent e) {
 				if (e.getKeyCode() == KeyEvent.VK_O) {
-					contentPanel.addBox(false);
+					contentPanel.addBox();
 				} else if (e.getKeyCode() == KeyEvent.VK_A) {
 					contentPanel.addBox(true);
+				} else if (e.getKeyCode() == KeyEvent.VK_DOWN)
+					pressed[2] = true;
+				else if (e.getKeyCode() == KeyEvent.VK_UP)
+					pressed[3] = true;
+				else if (e.getKeyCode() == KeyEvent.VK_RIGHT)
+					pressed[4] = true;
+				else if (e.getKeyCode() == KeyEvent.VK_LEFT)
+					pressed[5] = true;
+				else if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+					pressed[6] = true;
 				}
+
+				checkKeys();
 			}
 		});
 
 		this.pack();
 	}
 
+	private synchronized void checkKeys() {
+		if (pressed[2]
+				&& targetY + moveAmount + SQUARE_SIZE < RectangleCollision.this
+						.getHeight())
+			targetY += moveAmount;
+		if (pressed[3] && targetY - moveAmount > 0)
+			targetY -= moveAmount;
+		if (pressed[4]
+				&& targetX + moveAmount + SQUARE_SIZE < RectangleCollision.this
+						.getWidth())
+			targetX += moveAmount;
+		if (pressed[5] && targetX - moveAmount > 0)
+			targetX -= moveAmount;
+		if (pressed[6])
+			moveAmount = 15;
+		else
+			moveAmount = 3;
+	}
+
 	private class ContentPanel extends JPanel {
 
 		private Box userRect;
 		private ArrayList<BoxAI> boxArray = new ArrayList<BoxAI>();
+		protected double maxTargetDistance;
 
 		private ContentPanel() {
 			userRect = new Box();
+			updateMaxDistance();
 			Thread userThread = new Thread(new Runnable() {
 
 				@Override
@@ -85,7 +136,7 @@ public class RectangleCollision extends JFrame {
 						}
 						collisionCheckCounter++;
 
-						if (collisionCheckCounter > 64) {
+						if (collisionCheckCounter > 30) {
 							if (userRect.isColliding(userRect.x, userRect.y)
 									|| userRect.isColliding(userRect.x
 											+ SQUARE_SIZE, userRect.y)
@@ -95,9 +146,9 @@ public class RectangleCollision extends JFrame {
 									|| userRect.isColliding(userRect.x,
 											userRect.y + SQUARE_SIZE)) {
 								ContentPanel.this.addBox();
-								System.out.println("collided");
 							}
 							collisionCheckCounter = 0;
+							checkKeys();
 						}
 					}
 				}
@@ -119,6 +170,36 @@ public class RectangleCollision extends JFrame {
 					// nothing
 				}
 			});
+
+			this.addComponentListener(new ComponentListener() {
+
+				@Override
+				public void componentShown(ComponentEvent e) {
+					// nothing
+				}
+
+				@Override
+				public void componentResized(ComponentEvent e) {
+					updateMaxDistance();
+					targetX = RectangleCollision.this.getWidth() / 2;
+					targetY = RectangleCollision.this.getHeight() / 2;
+				}
+
+				@Override
+				public void componentMoved(ComponentEvent e) {
+					// nothing
+				}
+
+				@Override
+				public void componentHidden(ComponentEvent e) {
+					// nothing
+				}
+			});
+		}
+
+		private void updateMaxDistance() {
+			maxTargetDistance = Math.sqrt(RectangleCollision.this.getWidth()
+					* RectangleCollision.this.getHeight()) / 4;
 		}
 
 		private void addBox() {
@@ -151,7 +232,6 @@ public class RectangleCollision extends JFrame {
 
 		private class Box {
 
-			protected static final double MAX_TARGET_DISTANCE = 300;
 			protected static final double STEPS = 150;
 			protected static final double MOVE_SPEED = 4.5;
 
@@ -169,7 +249,7 @@ public class RectangleCollision extends JFrame {
 			}
 
 			protected int getDelta() {
-				return (int) (Math.random() * MAX_TARGET_DISTANCE - (MAX_TARGET_DISTANCE / 2));
+				return (int) (Math.random() * maxTargetDistance - (maxTargetDistance / 2));
 			}
 
 			protected boolean isColliding(double x, double y) {
@@ -179,8 +259,26 @@ public class RectangleCollision extends JFrame {
 					double targetTopY = boxArray.get(i).y;
 					double targetBottomY = boxArray.get(i).y + SQUARE_SIZE;
 					if (x <= targetRightX && x >= targetLeftX
-							&& y <= targetBottomY && y >= targetTopY)
+							&& y <= targetBottomY && y >= targetTopY) {
+
+						Thread flash = new Thread(new Runnable() {
+
+							@Override
+							public void run() {
+								ContentPanel.this
+										.setBackground(Color.LIGHT_GRAY);
+								try {
+									Thread.sleep(100);
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
+								ContentPanel.this.setBackground(Color.WHITE);
+							}
+						});
+						flash.run();
+
 						return true;
+					}
 				}
 				return false;
 			}
@@ -196,6 +294,18 @@ public class RectangleCollision extends JFrame {
 					@Override
 					public void run() {
 						while (true) {
+
+							if (BoxAI.this.x + SQUARE_SIZE > RectangleCollision.this
+									.getWidth()
+									|| BoxAI.this.x < 0
+									|| BoxAI.this.y + SQUARE_SIZE > RectangleCollision.this
+											.getHeight() || BoxAI.this.y < 0) {
+								BoxAI.this.x = RectangleCollision.this
+										.getWidth() / 2;
+								BoxAI.this.y = RectangleCollision.this
+										.getHeight() / 2;
+							}
+
 							int deltaX = getDelta();
 							int deltaY = getDelta();
 
@@ -222,12 +332,6 @@ public class RectangleCollision extends JFrame {
 								}
 								ContentPanel.this.repaint();
 							}
-							if (isColliding(x, y)
-									|| isColliding(x + SQUARE_SIZE, y)
-									|| isColliding(x + SQUARE_SIZE, y
-											+ SQUARE_SIZE)
-									|| isColliding(x, y + SQUARE_SIZE))
-								ContentPanel.this.addBox();
 						}
 					}
 				});
