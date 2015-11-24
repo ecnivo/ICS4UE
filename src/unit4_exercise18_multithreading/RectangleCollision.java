@@ -245,7 +245,7 @@ public class RectangleCollision extends JFrame {
 				y = (Math.random() * RectangleCollision.this.getHeight());
 				colour = new Color((int) (Math.random() * 255),
 						(int) (Math.random() * 255),
-						(int) (Math.random() * 255), 200);
+						(int) (Math.random() * 255), (int) (Math.random() * 75 + 150));
 			}
 
 			protected int getDelta() {
