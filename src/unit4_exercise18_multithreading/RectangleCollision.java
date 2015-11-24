@@ -16,7 +16,7 @@ import javax.swing.JPanel;
 
 public class RectangleCollision extends JFrame {
 
-	private final static int SQUARE_SIZE = 15;
+	private final static int SQUARE_SIZE = 35;
 	private static double moveAmount;
 
 	protected double targetX;
@@ -259,26 +259,8 @@ public class RectangleCollision extends JFrame {
 					double targetTopY = boxArray.get(i).y;
 					double targetBottomY = boxArray.get(i).y + SQUARE_SIZE;
 					if (x <= targetRightX && x >= targetLeftX
-							&& y <= targetBottomY && y >= targetTopY) {
-
-						Thread flash = new Thread(new Runnable() {
-
-							@Override
-							public void run() {
-								ContentPanel.this
-										.setBackground(Color.LIGHT_GRAY);
-								try {
-									Thread.sleep(100);
-								} catch (InterruptedException e) {
-									e.printStackTrace();
-								}
-								ContentPanel.this.setBackground(Color.WHITE);
-							}
-						});
-						flash.run();
-
+							&& y <= targetBottomY && y >= targetTopY)
 						return true;
-					}
 				}
 				return false;
 			}
