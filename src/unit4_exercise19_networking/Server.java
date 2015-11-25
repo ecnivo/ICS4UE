@@ -6,7 +6,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
+
+import javax.swing.plaf.basic.BasicMenuUI.ChangeHandler;
 
 public class Server {
 
@@ -15,7 +18,7 @@ public class Server {
 	private Socket clientSocket;
 	private ServerSocket server;
 
-	private ArrayList<ClientHandler> clients = new ArrayList<ClientHandler>();
+	private ArrayList<UserClient> clients = new ArrayList<UserClient>();
 
 	public static void main(String[] args) {
 		new Server();
@@ -23,13 +26,17 @@ public class Server {
 
 	public Server() {
 		System.out.println("Listening for connection on " + PORT);
+		try {
+			server = new ServerSocket(PORT);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
 		while (true) {
 			try {
-				server = new ServerSocket(PORT);
 				clientSocket = server.accept();
 				System.out.println("Connected to "
 						+ clientSocket.getRemoteSocketAddress());
-				ClientHandler client = new ClientHandler(clientSocket);
+				UserClient client = new UserClient(clientSocket);
 				clients.add(client);
 				Thread clientThread = new Thread(client);
 				clientThread.start();
@@ -40,7 +47,7 @@ public class Server {
 		}
 	}
 
-	private void broadcastMessage(ClientHandler user, String message)
+	private void broadcastMessage(UserClient user, String message)
 			throws IOException {
 		int length = clients.size();
 		for (int i = 0; i < length; i++) {
@@ -48,11 +55,11 @@ public class Server {
 		}
 	}
 
-	private void newUser(ClientHandler user) throws IOException {
-		broadcastMessage(user, user.getName() + " just joined the chat");
+	private void newUser(UserClient user) throws IOException {
+		broadcastMessage(user, " just joined the chat");
 	}
 
-	private void removeUser(ClientHandler client) {
+	private void removeUser(UserClient client) {
 		int length = clients.size();
 		for (int i = 0; i < length; i++) {
 			if (clients.get(i) == client) {
@@ -62,7 +69,7 @@ public class Server {
 		}
 	}
 
-	class ClientHandler implements Runnable {
+	class UserClient implements Runnable {
 
 		private Socket user;
 		private String message;
@@ -71,7 +78,7 @@ public class Server {
 		PrintWriter clientWriter;
 		BufferedReader clientReader;
 
-		public ClientHandler(Socket client) {
+		public UserClient(Socket client) {
 			this.user = client;
 		}
 
@@ -88,18 +95,31 @@ public class Server {
 
 			try {
 				userName = clientReader.readLine();
-				if (!userName.matches("[A-Za-z0-9 ]*"))
+				if (!userName.matches("[A-Za-z0-9 ]*")
+						|| !(userName.length() > 0))
 					userName = user.getRemoteSocketAddress().toString();
 				Server.this.newUser(this);
 			} catch (IOException e1) {
-				System.out.println("Failed to contact other users.");
+				System.out.println("Failed to contact other "
+						+ "users to broadcast new user.");
 				e1.printStackTrace();
 			}
 
 			while (!user.isClosed()) {
 				try {
 					message = clientReader.readLine();
-					if (!message.equals("*QUIT*"))
+				} catch (SocketException e) {
+					removeUser(this);
+					System.out.println("connection to user lost");
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				System.out.println("Receieved message from "
+						+ this.getUserName());
+
+				try {
+					if (!message.equals("***QUIT***"))
 						Server.this.broadcastMessage(this, message);
 					else {
 						clientWriter.close();
@@ -108,24 +128,21 @@ public class Server {
 						removeUser(this);
 					}
 				} catch (IOException e) {
-					System.out.println("Failed to send message to " + userName);
 					e.printStackTrace();
 				}
 			}
 		}
 
-		private String getName() {
+		private String getUserName() {
 			return userName;
 		}
 
-		private String getMessage() {
-			return message;
-		}
-
-		protected void sendMessage(ClientHandler origin, String message)
+		private void sendMessage(UserClient origin, String message)
 				throws IOException {
-			clientWriter.println(origin.getName() + "\n" + message);
+			clientWriter.println(origin.getUserName() + "\n" + message);
 			clientWriter.flush();
+			System.out.println("Message {" + message + "} sent from server to "
+					+ UserClient.this.getUserName());
 		}
 	}
 }
