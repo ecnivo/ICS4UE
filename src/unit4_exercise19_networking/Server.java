@@ -20,6 +20,8 @@ public class Server {
 
 	private ArrayList<UserClient> clients = new ArrayList<UserClient>();
 
+	protected static final String SEP_CHAR = "\\";
+
 	public static void main(String[] args) {
 		new Server();
 	}
@@ -119,13 +121,13 @@ public class Server {
 						+ this.getUserName());
 
 				try {
-					if (!message.equals("***QUIT***"))
-						Server.this.broadcastMessage(this, message);
-					else {
+					if (message.equals("***QUIT***")) {
 						clientWriter.close();
 						clientReader.close();
 						user.close();
 						removeUser(this);
+					} else {
+						Server.this.broadcastMessage(this, message);
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -139,7 +141,8 @@ public class Server {
 
 		private void sendMessage(UserClient origin, String message)
 				throws IOException {
-			clientWriter.println(origin.getUserName() + "\n" + message);
+			message = origin.getUserName() + SEP_CHAR + message;
+			clientWriter.println(message);
 			clientWriter.flush();
 			System.out.println("Message {" + message + "} sent from server to "
 					+ UserClient.this.getUserName());

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -65,11 +66,19 @@ public class Client {
 		while (!socket.isClosed()) {
 			try {
 				incoming = reader.readLine();
-			} catch (IOException e) {
-				System.out.println("Failed to receive message");
+			} catch (SocketException e) {
 				e.printStackTrace();
+				JOptionPane.showConfirmDialog(null, "Cannot find server.",
+						"Connection Failed", JOptionPane.DEFAULT_OPTION,
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.out.println("Failed to receive message.");
+				return;
 			}
-			System.out.println("received message {" + incoming + "} from server");
+			System.out.println("received message {" + incoming
+					+ "} from server");
 
 			frame.getCPanel().addMessage(incoming);
 		}
@@ -85,7 +94,7 @@ public class Client {
 					System.out.println("Error sending message to server");
 					e.printStackTrace();
 				}
-				System.out.println("message sent to server");
+				System.out.println("message {" + message + "} sent to server");
 			}
 		});
 		sendThread.start();
@@ -174,8 +183,7 @@ public class Client {
 		}
 
 		protected void addMessage(String message) {
-			int sepIndex = message.indexOf("\n");
-			System.out.println(sepIndex);
+			int sepIndex = message.indexOf(Server.SEP_CHAR);
 			String userName = message.substring(0, sepIndex);
 			message = message.substring(sepIndex + 1, message.length());
 
