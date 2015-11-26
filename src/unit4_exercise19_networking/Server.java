@@ -4,12 +4,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 
+import javax.swing.JOptionPane;
 import javax.swing.plaf.basic.BasicMenuUI.ChangeHandler;
+
+import com.sun.org.apache.xpath.internal.compiler.Keywords;
 
 public class Server {
 
@@ -18,9 +22,11 @@ public class Server {
 	private Socket clientSocket;
 	private ServerSocket server;
 
-	private ArrayList<UserClient> clients = new ArrayList<UserClient>();
+	protected final static String QUIT_KEYWORD = "/quit";
+	protected final static String CHANGE_NAME_KEYWORD = "/rename";
+	protected final static String LIST_KEYWORD = "/listusers";
 
-	protected static final String SEP_CHAR = "\\";
+	private ArrayList<UserClient> clients = new ArrayList<UserClient>();
 
 	public static void main(String[] args) {
 		new Server();
@@ -30,6 +36,8 @@ public class Server {
 		System.out.println("Listening for connection on " + PORT);
 		try {
 			server = new ServerSocket(PORT);
+		} catch (BindException e) {
+			System.err.println("Server already running.");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
@@ -43,8 +51,7 @@ public class Server {
 				Thread clientThread = new Thread(client);
 				clientThread.start();
 			} catch (IOException e) {
-				System.out.println("Failed to accept connection");
-				e.printStackTrace();
+				System.err.println("Failed to accept connection");
 			}
 		}
 	}
@@ -57,8 +64,17 @@ public class Server {
 		}
 	}
 
-	private void newUser(UserClient user) throws IOException {
+	private void broadcastNewUser(UserClient user) throws IOException {
 		broadcastMessage(user, " just joined the chat");
+	}
+
+	private void broadcastChangeName(UserClient user, String formerName)
+			throws IOException {
+		broadcastMessage(user, " changed their name from " + formerName);
+	}
+
+	private void broadcastQuit(UserClient user) throws IOException {
+		broadcastMessage(user, "has left the chat room");
 	}
 
 	private void removeUser(UserClient client) {
@@ -82,6 +98,7 @@ public class Server {
 
 		public UserClient(Socket client) {
 			this.user = client;
+			this.userName = client.getRemoteSocketAddress().toString();
 		}
 
 		@Override
@@ -91,48 +108,51 @@ public class Server {
 				clientReader = new BufferedReader(new InputStreamReader(
 						user.getInputStream()));
 			} catch (IOException e) {
-				System.out.println("Failed to create writer and/or reader");
-				e.printStackTrace();
+				System.err.println("Failed to create writer and/or reader");
 			}
 
-			try {
-				userName = clientReader.readLine();
-				if (!userName.matches("[A-Za-z0-9 ]*")
-						|| !(userName.length() > 0))
-					userName = user.getRemoteSocketAddress().toString();
-				Server.this.newUser(this);
-			} catch (IOException e1) {
-				System.out.println("Failed to contact other "
-						+ "users to broadcast new user.");
-				e1.printStackTrace();
-			}
+			changeUserName(true);
 
-			while (!user.isClosed()) {
+			while (user.isConnected()) {
 				try {
 					message = clientReader.readLine();
 				} catch (SocketException e) {
 					removeUser(this);
-					System.out.println("connection to user lost");
-					e.printStackTrace();
+					System.err.println("Connection to user lost");
 				} catch (IOException e) {
-					e.printStackTrace();
+					System.err
+							.println("Something went wrong and I'm too lazy to find out what it is.");
 				}
-				System.out.println("Receieved message from "
+
+				System.out.println("Receieved message {" + message + "} from "
 						+ this.getUserName());
 
 				try {
-					if (message.equals("***QUIT***")) {
+					if (message.equalsIgnoreCase(QUIT_KEYWORD)) {
 						clientWriter.close();
 						clientReader.close();
 						user.close();
 						removeUser(this);
+						broadcastQuit(this);
+						break;
+					} else if (message.equalsIgnoreCase(LIST_KEYWORD)) {
+						String listOfUsers = "List of users:\n";
+						for (int i = clients.size() - 1; i >= 0; i--) {
+							listOfUsers += clients.get(i).getUserName() + "\n";
+						}
+						clientWriter.println(listOfUsers);
+						clientWriter.flush();
+					} else if (message.equalsIgnoreCase(CHANGE_NAME_KEYWORD)) {
+						changeUserName(false);
 					} else {
 						Server.this.broadcastMessage(this, message);
 					}
 				} catch (IOException e) {
-					e.printStackTrace();
+					System.err
+							.println("Something else went wrong and I'm still lazy.");
 				}
 			}
+			return;
 		}
 
 		private String getUserName() {
@@ -141,11 +161,55 @@ public class Server {
 
 		private void sendMessage(UserClient origin, String message)
 				throws IOException {
-			message = origin.getUserName() + SEP_CHAR + message;
+			clientWriter.println(origin.getUserName());
 			clientWriter.println(message);
 			clientWriter.flush();
 			System.out.println("Message {" + message + "} sent from server to "
 					+ UserClient.this.getUserName());
+		}
+
+		private void changeUserName(boolean newUser) {
+			String formerName = userName;
+			String tempName;
+			boolean valid = true;
+			try {
+				tempName = clientReader.readLine().trim();
+				if (!tempName.matches("[A-Za-z0-9 ]*")) {
+					sendMessage(this,
+							"SERVER SAYS: Invalid username. Cannot contain special characters.");
+					valid = false;
+				}
+				if (tempName.length() < 1) {
+					sendMessage(this,
+							"SERVER SAYS: Invalid username. Too short.");
+					valid = false;
+				}
+				for (int i = clients.size() - 1; i >= 0 && valid; i--) {
+					if (clients.get(i).getUserName().equalsIgnoreCase(tempName)) {
+						valid = false;
+						sendMessage(this,
+								"SERVER SAYS: Invalid username. Username already in use..");
+					}
+				}
+
+				if (valid)
+					userName = tempName;
+				else
+					userName = user.getRemoteSocketAddress().toString();
+
+				if (newUser)
+					Server.this.broadcastNewUser(this);
+				else
+					Server.this.broadcastChangeName(this, formerName);
+			} catch (IOException e1) {
+				System.out.println("Failed to contact other "
+						+ "users to broadcast new user.");
+				e1.printStackTrace();
+			}
+		}
+
+		public String toString() {
+			return userName;
 		}
 	}
 }
